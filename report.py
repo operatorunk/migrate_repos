@@ -1,5 +1,4 @@
 import requests
-from requests.auth import HTTPBasicAuth
 
 BITBUCKET_URL = "https://bitbucket.tuempresa.com"
 USERNAME = "TU_USUARIO"
@@ -7,26 +6,23 @@ TOKEN = "TU_TOKEN"
 PROJECT_KEY = "TU_PROJECT_KEY"
 
 
-def get_projects():
+def get_repositories():
     start = 0
 
     while True:
-        url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}"
+        url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos?start={start}"
 
         response = requests.get(
             url,
-            auth=HTTPBasicAuth(USERNAME, TOKEN),
+            auth=(USERNAME, TOKEN),
             verify=False
         )
 
         response.raise_for_status()
-
         data = response.json()
 
-        for project in data["values"]:
-            print(
-                f'{project["key"]} - {project["name"]}'
-            )
+        for repo in data["values"]:
+            print(f'{PROJECT_KEY} - {repo["slug"]} - {repo["name"]}')
 
         if data["isLastPage"]:
             break
@@ -35,4 +31,4 @@ def get_projects():
 
 
 if __name__ == "__main__":
-    get_projects()
+    get_repositories()
