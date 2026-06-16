@@ -11,7 +11,7 @@ def get_projects():
     start = 0
 
     while True:
-        url = f"{BITBUCKET_URL}/rest/api/1.0/projects?start={start}"
+        url = f"{BITBUCKET_URL}/rest/api/1.0/projects?/{PROJECT_KEY}"
 
         response = requests.get(
             url,
