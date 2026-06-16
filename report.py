@@ -4,6 +4,7 @@ from requests.auth import HTTPBasicAuth
 BITBUCKET_URL = "https://bitbucket.tuempresa.com"
 USERNAME = "TU_USUARIO"
 TOKEN = "TU_TOKEN"
+PROJECT_KEY = "TU_PROJECT_KEY"
 
 
 def get_projects():
