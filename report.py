@@ -10,8 +10,10 @@ def get_paginated(url):
     results = []
     start = 0
 
+    separator = "&" if "?" in url else "?"
+
     while True:
-        paged_url = f"{url}?start={start}"
+        paged_url = f"{url}{separator}start={start}"
 
         response = requests.get(
             paged_url,
@@ -30,7 +32,6 @@ def get_paginated(url):
         start = data["nextPageStart"]
 
     return results
-
 
 def get_repositories():
     url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos"
