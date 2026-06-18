@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime
 
 BITBUCKET_URL = "https://bitbucket.tuempresa.com"
 USERNAME = "TU_USUARIO"
@@ -34,19 +35,39 @@ def get_paginated(url):
     return results
 
 
+def format_timestamp(timestamp_ms):
+    if not timestamp_ms:
+        return "N/A"
+
+    return datetime.fromtimestamp(timestamp_ms / 1000).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def get_repositories():
     url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos"
     return get_paginated(url)
 
 
 def get_open_pull_requests(repo_slug):
-    url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos/{repo_slug}/pull-requests"
-    return get_paginated(f"{url}?state=OPEN")
+    url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos/{repo_slug}/pull-requests?state=OPEN"
+    return get_paginated(url)
 
 
 def get_branches(repo_slug):
     url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos/{repo_slug}/branches"
     return get_paginated(url)
+
+
+def get_commit(repo_slug, commit_id):
+    url = f"{BITBUCKET_URL}/rest/api/1.0/projects/{PROJECT_KEY}/repos/{repo_slug}/commits/{commit_id}"
+
+    response = requests.get(
+        url,
+        auth=(USERNAME, TOKEN),
+        verify=False
+    )
+
+    response.raise_for_status()
+    return response.json()
 
 
 def main():
@@ -77,8 +98,18 @@ def main():
             branch_name = branch.get("displayId", "N/A")
             latest_commit = branch.get("latestCommit", "N/A")
 
+            commit = get_commit(repo_slug, latest_commit)
+
+            author = commit.get("author", {}).get("name", "N/A")
+            author_email = commit.get("author", {}).get("emailAddress", "N/A")
+            commit_date = format_timestamp(commit.get("authorTimestamp"))
+
             print(
-                f"  Branch: {branch_name} | Latest Commit: {latest_commit}"
+                f"  Branch: {branch_name} | "
+                f"Latest Commit: {latest_commit} | "
+                f"Author: {author} | "
+                f"Email: {author_email} | "
+                f"Date: {commit_date}"
             )
 
 
