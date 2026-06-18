@@ -86,14 +86,10 @@ def get_commit(repo_slug, commit_id):
     return response.json()
 
 
-def get_default_branch(repo):
-    default_branch = repo.get("defaultBranch")
-
-    if isinstance(default_branch, dict):
-        return default_branch.get("displayId") or default_branch.get("id") or "N/A"
-
-    if isinstance(default_branch, str):
-        return default_branch
+def get_default_branch_from_branches(branches):
+    for branch in branches:
+        if branch.get("isDefault") is True:
+            return branch.get("displayId", "N/A")
 
     return "N/A"
 
@@ -121,11 +117,11 @@ def main():
     for repo in repos:
         repo_slug = repo["slug"]
         repo_name = repo["name"]
-        default_branch = get_default_branch(repo)
         repo_size = get_repo_size(repo)
 
         open_prs = get_open_pull_requests(repo_slug)
         branches = get_branches(repo_slug)
+        default_branch = get_default_branch_from_branches(branches)
         tags = get_tags(repo_slug)
 
         latest_repo_activity = None
