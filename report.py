@@ -1,3 +1,4 @@
+import csv
 import requests
 import urllib3
 from datetime import datetime
@@ -10,6 +11,32 @@ TOKEN = "TU_TOKEN"
 PROJECT_KEY = "TU_PROJECT_KEY"
 
 STALE_BRANCH_DAYS = 180
+REPORT_FILE = "bitbucket_migration_report.csv"
+
+
+CSV_FIELDS = [
+    "record_type",
+    "project_key",
+    "repo_name",
+    "repo_slug",
+    "default_branch",
+    "repo_size",
+    "repo_branch_count",
+    "repo_tag_count",
+    "repo_open_pr_count",
+    "latest_repo_activity",
+    "branch_name",
+    "latest_commit",
+    "author",
+    "email",
+    "commit_date",
+    "branch_status",
+    "pr_id",
+    "pr_title",
+    "pr_source_branch",
+    "pr_target_branch",
+    "tag_name",
+]
 
 
 def get_paginated(url):
@@ -111,8 +138,42 @@ def is_stale_branch(commit_datetime):
     return age_days > STALE_BRANCH_DAYS
 
 
+def empty_row(record_type, repo_name, repo_slug):
+    return {
+        "record_type": record_type,
+        "project_key": PROJECT_KEY,
+        "repo_name": repo_name,
+        "repo_slug": repo_slug,
+        "default_branch": "",
+        "repo_size": "",
+        "repo_branch_count": "",
+        "repo_tag_count": "",
+        "repo_open_pr_count": "",
+        "latest_repo_activity": "",
+        "branch_name": "",
+        "latest_commit": "",
+        "author": "",
+        "email": "",
+        "commit_date": "",
+        "branch_status": "",
+        "pr_id": "",
+        "pr_title": "",
+        "pr_source_branch": "",
+        "pr_target_branch": "",
+        "tag_name": "",
+    }
+
+
+def write_csv(rows):
+    with open(REPORT_FILE, "w", newline="", encoding="utf-8-sig") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def main():
     repos = get_repositories()
+    report_rows = []
 
     for repo in repos:
         repo_slug = repo["slug"]
@@ -125,6 +186,7 @@ def main():
         tags = get_tags(repo_slug)
 
         latest_repo_activity = None
+        branch_rows_for_repo = []
 
         print("=" * 80)
         print(f"Repo: {repo_name} ({repo_slug})")
@@ -145,6 +207,18 @@ def main():
                 f'From: {from_branch} | '
                 f'To: {to_branch}'
             )
+
+            pr_row = empty_row("OPEN_PR", repo_name, repo_slug)
+            pr_row.update({
+                "default_branch": default_branch,
+                "repo_size": repo_size,
+                "pr_id": pr.get("id", ""),
+                "pr_title": pr.get("title", ""),
+                "author": author,
+                "pr_source_branch": from_branch,
+                "pr_target_branch": to_branch,
+            })
+            report_rows.append(pr_row)
 
         print(f"\nBranches: {len(branches)}")
 
@@ -176,6 +250,19 @@ def main():
                 f"Status: {stale_status}"
             )
 
+            branch_row = empty_row("BRANCH", repo_name, repo_slug)
+            branch_row.update({
+                "default_branch": default_branch,
+                "repo_size": repo_size,
+                "branch_name": branch_name,
+                "latest_commit": latest_commit,
+                "author": author,
+                "email": author_email,
+                "commit_date": commit_date,
+                "branch_status": stale_status,
+            })
+            branch_rows_for_repo.append(branch_row)
+
         latest_repo_activity_text = (
             latest_repo_activity.strftime("%Y-%m-%d %H:%M:%S")
             if latest_repo_activity
@@ -184,12 +271,39 @@ def main():
 
         print(f"\nLatest Repo Activity: {latest_repo_activity_text}")
 
+        repo_row = empty_row("REPOSITORY", repo_name, repo_slug)
+        repo_row.update({
+            "default_branch": default_branch,
+            "repo_size": repo_size,
+            "repo_branch_count": len(branches),
+            "repo_tag_count": len(tags),
+            "repo_open_pr_count": len(open_prs),
+            "latest_repo_activity": latest_repo_activity_text,
+        })
+        report_rows.append(repo_row)
+
+        report_rows.extend(branch_rows_for_repo)
+
         if tags:
             print("\nTags:")
             for tag in tags:
                 tag_name = tag.get("displayId", "N/A")
                 latest_commit = tag.get("latestCommit", "N/A")
+
                 print(f"  Tag: {tag_name} | Commit: {latest_commit}")
+
+                tag_row = empty_row("TAG", repo_name, repo_slug)
+                tag_row.update({
+                    "default_branch": default_branch,
+                    "repo_size": repo_size,
+                    "tag_name": tag_name,
+                    "latest_commit": latest_commit,
+                })
+                report_rows.append(tag_row)
+
+    write_csv(report_rows)
+    print("=" * 80)
+    print(f"Report generated: {REPORT_FILE}")
 
 
 if __name__ == "__main__":
