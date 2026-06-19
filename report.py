@@ -116,6 +116,15 @@ def get_repo_size(repo):
     return size
 
 
+def get_repo_description(repo):
+    description = repo.get("description")
+
+    if description is None or str(description).strip() == "":
+        return "N/A"
+
+    return str(description).strip()
+
+
 def is_stale_branch(commit_datetime):
     if not commit_datetime:
         return False
@@ -132,6 +141,7 @@ def main():
     for repo in repos:
         repo_slug = repo["slug"]
         repo_name = repo["name"]
+        repo_description = get_repo_description(repo)
         repo_size = get_repo_size(repo)
 
         open_prs = get_open_pull_requests(repo_slug)
@@ -143,6 +153,7 @@ def main():
 
         log("=" * 80)
         log(f"Repo: {repo_name} ({repo_slug})")
+        log(f"Description: {repo_description}")
         log(f"Default Branch: {default_branch}")
         log(f"Repo Size: {repo_size}")
         log(f"Tags: {len(tags)}")
