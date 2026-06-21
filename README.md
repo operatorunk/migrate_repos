@@ -1,46 +1,31 @@
 # migrate_repos
 repository to add repositories report scripts
 
-# 1. Clonar desde el mirror local si ya lo tienes
-git clone <repo>.git <repo>-clean
-cd <repo>-clean
+# Paso 1: clonar en mirror
 
-# 2. Asegurar rama master
-git checkout master
-git status
+En una carpeta nueva:
 
-# 3. Borrar histórico Git
-rm -rf .git
+git clone --mirror https://bitbucket.tuempresa.com/scm/PROJECT_KEY/repo_slug.git
 
-# 4. Crear repo limpio
-git init
-git add .
-git commit -m "Initial clean migration from Bitbucket master"
-git branch -M master
+Entra en el mirror:
 
-# 5. Añadir Azure como remoto
-git remote add origin https://dev.azure.com/ORG/PROJECT/_git/migrated-PROJECT_KEY-repo_slug
+cd repo_slug.git
 
-# 6. Reducir compresión si quieres evitar bloqueos
-git config core.compression 0
+# Paso 2: comprobar tamaño antes de subir
+git count-objects -vH
 
-# 7. Subir a Azure
-git push -u origin master
+Mira este valor:
 
-# 8. Validar
-git log --oneline --decorate -5
+size-pack
+
+Si size-pack es menor de 5 GB, probamos migración completa.
+
+# Paso 3: apuntar a Azure
+git remote set-url origin https://dev.azure.com/ORG/PROJECT/_git/migrated-PROJECT_KEY-repo_slug
+
+Comprueba:
+
 git remote -v
 
-Si no tienes mirror local y quieres clonar directo desde Bitbucket:
-
-git clone https://bitbucket.tuempresa.com/scm/PROJECT_KEY/repo_slug.git <repo>-clean
-cd <repo>-clean
-git checkout master
-rm -rf .git
-git init
-git add .
-git commit -m "Initial clean migration from Bitbucket master"
-git branch -M master
-git remote add origin https://dev.azure.com/ORG/PROJECT/_git/migrated-PROJECT_KEY-repo_slug
-git config core.compression 0
-git push -u origin master
+# Paso 4: push completo
+git push --mirror origin
